@@ -1,10 +1,31 @@
-# Deploy-Tetris-Game-to-Azure-App-Service-using-Azure-Pipelines
+# 🎮 Tetris Game App by @yomiwumip
 
-Prerequisites :
-- An Azure account with an active subscription. <a href="https://azure.microsoft.com/en-us/free/?WT.mc_id=A261C142F" target="_blank">Create an account for free.</a> 
-- An Azure DevOps organization. <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/get-started/pipelines-sign-up?view=azure-devops" target="_blank">Create an account for free.</a> 
+A modern, browser-based Tetris game built with HTML, CSS, and JavaScript. This is my own version of the classic Tetris game, built from the ground up and fully customizable.
 
-Video ---- https://youtu.be/wxsYA_NB8os
+## 🚀 Features
 
+- Classic Tetris gameplay
+- Responsive design
+- Smooth animations
+- Keyboard controls
+- Clean, minimalist UI
 
-# My-Tetris-App
+## 🛠️ Tech Stack
+
+- HTML5
+- CSS3
+- JavaScript (Vanilla)
+
+## 🎮 Controls
+
+- Move Left/Right: ← / →
+- Rotate: ↑
+- Drop: ↓
+- Pause: Spacebar
+
+## 🧪 Getting Started
+
+```bash
+git clone https://github.com/yomiwumip/my-tetris-app.git
+cd my-tetris-app
+open index.html
