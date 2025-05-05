@@ -1,0 +1,14 @@
+🚀 Project Summary
+You will:
+
+Build a CI/CD pipeline in Azure DevOps
+
+Use GitHub as the code repository
+
+Use Docker to build container images
+
+Use Azure Container Registry (ACR) to store the images
+
+Deploy to Azure App Service for Linux Containers
+
+Automate build and release upon any GitHub changes

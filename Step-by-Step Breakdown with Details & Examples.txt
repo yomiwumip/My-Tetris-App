@@ -1,0 +1,156 @@
+Step 1: Create an Azure Container Registry (ACR)
+Go to Azure Portal → Container Registries → Create
+
+Fill in:
+
+Name: mylab22 (must be unique)
+
+Resource Group: Create a new one (e.g., myResourceGroup)
+
+Location: Choose closest to you
+
+SKU: Standard
+
+Click Create
+
+📝 This will be the storage location for your Docker images.
+
+Step 2: Create Azure DevOps Project
+Go to Azure DevOps Portal
+
+Create a new project:
+
+Name: my-lab-project
+
+Visibility: Private
+
+Click Create
+
+Step 3: Create Service Connections
+You need 2 service connections:
+
+A. For Azure Container Registry (ACR)
+Go to Project Settings → Service Connections → New
+
+Choose Docker Registry
+
+Select:
+
+Docker Registry Type: Azure Container Registry
+
+Authentication Type: Service Principal
+
+Fill in ACR details (username/password from ACR → Access keys)
+
+Check “Grant access to all pipelines”
+
+B. For GitHub
+New Service Connection → Select GitHub
+
+Use OAuth to authenticate
+
+Grant access to all pipelines
+
+Save
+
+Step 4: Create Build Pipeline (CI)
+Go to Pipelines → Create Pipeline
+
+Choose GitHub, then select your repo (e.g., Tetris game app)
+
+Choose template: Docker build and push an image to Azure Container Registry
+
+Fill in:
+
+Subscription: your Azure sub
+
+Container Registry: mylab22
+
+Image Name: tetris-game-app
+
+Click Save and Run
+
+✅ Build pipeline is triggered every time a change is pushed to GitHub and pushes Docker image to ACR.
+
+Step 5: Create Linux Web App for Containers
+Go to Azure Portal → App Services → Create
+
+Configure:
+
+Resource Group: Select existing
+
+Name: e.g., tetris-container-app
+
+OS: Linux
+
+Publish: Docker Container
+
+Region: your choice
+
+Under Docker settings:
+
+Image Source: Azure Container Registry
+
+Registry: mylab22
+
+Image: tetris-game-app
+
+Enable Admin user under ACR → Access keys
+
+Step 6: Create Release Pipeline (CD)
+In Azure DevOps → Pipelines → Releases → New Pipeline
+
+Select template: Azure App Service Deployment
+
+Add artifact:
+
+Source Type: Build
+
+Project: your DevOps project
+
+Default Version: Latest
+
+Enable Continuous Deployment trigger
+
+In Stage 1 task:
+
+App Type: Web App for Containers
+
+App Service: your web app
+
+Registry: mylab22.azurecr.io
+
+Repository: tetris-game-app
+
+Click Save → Create Release
+
+Step 7: Update App Configuration
+Go to Azure Portal → App Service → Configuration
+
+Add new Application Setting:
+
+Name: WEBSITES_PORT
+
+Value: 3000
+
+Save & Restart App
+
+📝 Ensures app listens on port 3000.
+
+Step 8: Test the Pipeline
+Change a file in your GitHub repo (e.g., change color in the UI)
+
+Example: Change "green" to "white" in the text Let's Play
+
+Push changes to GitHub
+
+🔄 This triggers:
+
+Build Pipeline → builds and pushes image
+
+Release Pipeline → deploys the new image to App Service
+
+Refresh your app URL to see the changes live.
+
+✅ Final Outcome
+You now have a fully automated CI/CD pipeline using Azure DevOps and GitHub. Any code change is automatically built and deployed.
