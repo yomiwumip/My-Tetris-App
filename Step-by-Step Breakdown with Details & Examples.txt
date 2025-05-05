@@ -1,156 +1,151 @@
-Step 1: Create an Azure Container Registry (ACR)
-Go to Azure Portal → Container Registries → Create
 
-Fill in:
+## 🔧 Step-by-Step Breakdown with Details & Examples (Including Service Connection Names)
 
-Name: mylab22 (must be unique)
+---
 
-Resource Group: Create a new one (e.g., myResourceGroup)
+### Step 1: Create an Azure Container Registry (ACR)
 
-Location: Choose closest to you
+1. Go to Azure Portal → Container Registries → Create
+2. Fill in:
 
-SKU: Standard
+   *Name: `mylab22` (must be unique)
+   *Resource Group: Create a new one (e.g., `myResourceGroup`)
+   *Location: Choose your location
+   *SKU: Standard
+3. Click Create
 
-Click Create
+---
 
-📝 This will be the storage location for your Docker images.
+### Step 2: Create Azure DevOps Project
 
-Step 2: Create Azure DevOps Project
-Go to Azure DevOps Portal
+1. Go to Azure DevOps Portal
+2. Create a new project:
 
-Create a new project:
+   *Name: `my-lab-project`
+   *Visibility: Private
+3. Click Create
 
-Name: my-lab-project
+---
 
-Visibility: Private
+### Step 3: Create Service Connections
 
-Click Create
-
-Step 3: Create Service Connections
 You need 2 service connections:
 
-A. For Azure Container Registry (ACR)
-Go to Project Settings → Service Connections → New
+#### A. Service Connection for Azure Container Registry (ACR)
 
-Choose Docker Registry
+1. Go to Project Settings → Service Connections → New
+2. Choose Docker Registry
+3. Select:
 
-Select:
+   *Docker Registry Type: Azure Container Registry
+   *Authentication Type: Service Principal
+   * Fill in the username and password from the Azure Container Registry → Access keys
+   * Check Grant access to all pipelines
+   *Service Connection Name: `ACR-Service-Connection`
+4. Save
 
-Docker Registry Type: Azure Container Registry
+#### B. Service Connection for GitHub
 
-Authentication Type: Service Principal
+1. Go to New Service Connection → GitHub
+2. Use OAuth to authenticate
+3. Grant access to all pipelines
+4. Service Connection Name: `GitHub-Service-Connection`
+5. Save
 
-Fill in ACR details (username/password from ACR → Access keys)
+---
 
-Check “Grant access to all pipelines”
+### Step 4: Create Build Pipeline (CI)
 
-B. For GitHub
-New Service Connection → Select GitHub
+1. Go to Pipelines → Create Pipeline
+2. Choose GitHub, then select your repo (e.g., `Tetris game app`)
+3. Choose template: Docker build and push an image to Azure Container Registry
+4. Fill in:
 
-Use OAuth to authenticate
+   *Subscription: Your Azure subscription
+   *Container Registry: `mylab22`
+   *Image Name: `tetris-game-app`
+   *Service Connection Name: `GitHub-Service-Connection` (to link the pipeline with GitHub)
+5. Click Save and Run
 
-Grant access to all pipelines
+---
 
-Save
+### Step 5: Create Linux Web App for Containers
 
-Step 4: Create Build Pipeline (CI)
-Go to Pipelines → Create Pipeline
+1. Go to Azure Portal → App Services → Create
 
-Choose GitHub, then select your repo (e.g., Tetris game app)
+2. Configure:
 
-Choose template: Docker build and push an image to Azure Container Registry
+   *Resource Group: Select existing one
+   *Name: `tetris-container-app`
+   *OS: Linux
+   *Publish: Docker Container
+   *Region: Select your preferred region
 
-Fill in:
+3. Under Docker settings:
 
-Subscription: your Azure sub
+   *Image Source: Azure Container Registry
+   *Registry: `mylab22`
+   *Image: `tetris-game-app`
 
-Container Registry: mylab22
+4. Enable Admin user under ACR → Access keys
 
-Image Name: tetris-game-app
+---
 
-Click Save and Run
+### Step 6: Create Release Pipeline (CD)
 
-✅ Build pipeline is triggered every time a change is pushed to GitHub and pushes Docker image to ACR.
+1. In Azure DevOps → Pipelines → Releases → New Pipeline
 
-Step 5: Create Linux Web App for Containers
-Go to Azure Portal → App Services → Create
+2. Select template: Azure App Service Deployment
 
-Configure:
+3. Add artifact:
 
-Resource Group: Select existing
+   *Source Type: Build
+   *Project: Your DevOps project
+   *Default Version: Latest
 
-Name: e.g., tetris-container-app
+4. Enable Continuous Deployment trigger
 
-OS: Linux
+5. In Stage 1 task:
 
-Publish: Docker Container
+   *App Type: Web App for Containers
+   *App Service: `tetris-container-app`
+   *Registry: `mylab22.azurecr.io`
+   *Repository: `tetris-game-app`
+   *Service Connection Name: `ACR-Service-Connection` (to link ACR with the pipeline)
 
-Region: your choice
+6. Click Save → Create Release
 
-Under Docker settings:
+---
 
-Image Source: Azure Container Registry
+### Step 7: Update App Configuration
 
-Registry: mylab22
+1. Go to Azure Portal → App Service → Configuration
+2. Add a new Application Setting:
 
-Image: tetris-game-app
+   *Name: `WEBSITES_PORT`
+   *Value: `3000`
+3. Save & Restart App
 
-Enable Admin user under ACR → Access keys
+---
 
-Step 6: Create Release Pipeline (CD)
-In Azure DevOps → Pipelines → Releases → New Pipeline
+### Step 8: Test the Pipeline
 
-Select template: Azure App Service Deployment
+1. Change a file in your GitHub repo (e.g., change color in the UI)
 
-Add artifact:
-
-Source Type: Build
-
-Project: your DevOps project
-
-Default Version: Latest
-
-Enable Continuous Deployment trigger
-
-In Stage 1 task:
-
-App Type: Web App for Containers
-
-App Service: your web app
-
-Registry: mylab22.azurecr.io
-
-Repository: tetris-game-app
-
-Click Save → Create Release
-
-Step 7: Update App Configuration
-Go to Azure Portal → App Service → Configuration
-
-Add new Application Setting:
-
-Name: WEBSITES_PORT
-
-Value: 3000
-
-Save & Restart App
-
-📝 Ensures app listens on port 3000.
-
-Step 8: Test the Pipeline
-Change a file in your GitHub repo (e.g., change color in the UI)
-
-Example: Change "green" to "white" in the text Let's Play
-
-Push changes to GitHub
+   * Example: Change `"green"` to `"white"` in the text `Let's Play`
+2. Push changes to GitHub
 
 🔄 This triggers:
 
-Build Pipeline → builds and pushes image
+*Build Pipeline → Builds and pushes image to ACR
+*Release Pipeline → Deploys the new image to App Service
 
-Release Pipeline → deploys the new image to App Service
+3. Refresh your app URL to see the changes live.
 
-Refresh your app URL to see the changes live.
+---
 
-✅ Final Outcome
-You now have a fully automated CI/CD pipeline using Azure DevOps and GitHub. Any code change is automatically built and deployed.
+## ✅ Final Outcome
+
+Now, you have an automatedCI/CD pipeline that uses Azure DevOps, GitHub,
+Azure Container Registry, and Azure App Service for deploying Dockerized applications. 
+Changes to the GitHub repository trigger the build and release pipelines.
