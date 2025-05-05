@@ -10,9 +10,9 @@ resources:
 
 variables:
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: 'acr-widerg-service-connection'
+  dockerRegistryServiceConnection: 'ACR-Service-Connection'
   imageRepository: 'My-Tetris-App'
-  containerRegistry: 'widerg.azurecr.io'
+  containerRegistry: 'widelab.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
 
