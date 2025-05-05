@@ -1,0 +1,306 @@
+
+# 🚀 CI/CD Pipeline on Azure Using Jenkins – Step-by-Step Manual
+
+## 📌 Overview
+
+This pipeline includes:
+
+* CI Job: Builds a Docker image from a GitHub repo and pushes it to Azure Container Registry (ACR)
+* CD Job: Pulls the image from ACR and deploys it to Azure App Service
+* Entire pipeline is automated on every GitHub commit
+
+---
+
+## ✅ Prerequisites
+
+* Azure Subscription
+* GitHub Account
+* Basic knowledge of Azure & Linux
+* DockerHub (optional)
+
+---
+
+## 🔧 STEP 1: Create a VM and Setup Jenkins + Azure CLI + Docker
+
+### 1.1 Create a Virtual Machine (VM) in Azure
+
+1. Login to [Azure Portal](https://portal.azure.com)
+2. Go to Virtual Machines > Create
+3. Fill in the details:
+
+   * Resource Group: Create new or use existing
+   * VM Name: `jenkins-server`
+   * Region: Choose nearest region
+   * Image: Ubuntu 22.04 LTS
+   * Size: Standard B1s (or higher)
+   * Authentication Type: Password
+   * Username: `azureadmin`
+   * Password: Your secure password
+4. Under Networking:
+
+   * Allow HTTP (80), SSH (22) and add custom inbound rule for port 8080
+5. Click Review + Create > Create
+
+---
+
+### 1.2 SSH into Your VM
+
+```bash
+ssh azureadmin@<PUBLIC-IP>
+```
+
+---
+
+### 1.3 Install Java (Required for Jenkins)
+
+```bash
+sudo apt update
+sudo apt install openjdk-11-jdk -y
+java -version
+```
+
+---
+
+### 1.4 Install Jenkins
+
+```bash
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt update
+sudo apt install jenkins -y
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
+sudo systemctl status jenkins
+```
+
+---
+
+### 1.5 Install Azure CLI
+
+```bash
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+az version
+```
+
+---
+
+### 1.6 Install Docker
+
+```bash
+sudo apt install docker.io -y
+sudo usermod -aG docker $USER
+sudo usermod -aG docker jenkins
+sudo reboot
+```
+
+---
+
+### 1.7 Access Jenkins UI
+
+1. Go to: `http://<VM_PUBLIC_IP>:8080`
+2. Run:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+3. Paste password in browser
+4. Install Suggested Plugins
+5. Create Admin User (e.g., `clouduser`)
+
+---
+
+## 🧱 STEP 2: Create Azure Container Registry (ACR)
+
+1. Azure Portal > Container Registries > Create
+2. Fill details:
+
+   * Resource Group
+   * Registry Name (must be globally unique)
+   * SKU: Basic
+3. After creation:
+
+   * Go to ACR > Access Keys
+   * Enable Admin User
+   * Note the Login server, Username, and Password
+
+---
+
+## 🔗 STEP 3: Integrate Jenkins with Azure & ACR
+
+### 3.1 Install Jenkins Plugins
+
+1. Jenkins Dashboard > Manage Jenkins > Manage Plugins
+2. Under Available:
+
+   * Install Azure CLI
+   * (Optional: Docker Pipeline)
+
+---
+
+### 3.2 Add ACR Credentials in Jenkins
+
+1. Jenkins > Manage Jenkins > Credentials > System > Global
+2. Add Credentials:
+
+   * Kind: Username/Password
+   * Username: ACR Username
+   * Password: ACR Password
+   * ID: `acr-credentials`
+
+---
+
+### 3.3 Create Azure Service Principal (SP) for Jenkins
+
+```bash
+az ad sp create-for-rbac --name jenkins-sp --role contributor \
+  --scopes /subscriptions/<SUBSCRIPTION_ID>
+```
+
+Save:
+
+* `appId` → Client ID
+* `password` → Client Secret
+* `tenant`
+
+---
+
+### 3.4 Add Service Principal to Jenkins
+
+1. Jenkins > Credentials > System > Global > Add Credentials
+2. Kind: Azure Service Principal
+3. Fill:
+
+   * Subscription ID
+   * Client ID
+   * Secret
+   * Tenant ID
+   * ID: `azure-sp`
+
+---
+
+## 🛠️ STEP 4: Create Jenkins CI Job
+
+### 4.1 Setup CI Job (Build + Push Image)
+
+1. Jenkins > New Item > Name: `CI-job` > Type: Freestyle project
+2. Source Code Management:
+
+   * Git: Add GitHub URL
+   * Branch: `main`
+3. Build Triggers: (optional now)
+4. Build Steps > Execute Shell:
+
+```bash
+rm -rf tetris
+git clone https://github.com/<your-username>/tetris.git
+cd tetris
+docker build -t <acr-name>.azurecr.io/tetris:latest .
+```
+
+5. Add Azure CLI step:
+
+   * Azure Credentials: `azure-sp`
+   * Command:
+
+```bash
+az acr login --name <acr-name>
+```
+
+6. Add another Azure CLI step:
+
+   * Command:
+
+```bash
+docker push <acr-name>.azurecr.io/tetris:latest
+```
+
+7. Save & Build the Job
+8. Verify image in Azure > ACR > Repositories
+
+---
+
+## 🌐 STEP 5: Create Azure Web App for Containers
+
+1. Azure > App Services > Create Web App
+2. Fill details:
+
+   * Name (unique)
+   * Publish: Docker Container
+   * OS: Linux
+   * Region
+3. Docker Settings:
+
+   * Source: Azure Container Registry
+   * Select ACR, image `tetris`, tag `latest`
+4. Review + Create
+
+---
+
+## 🚀 STEP 6: Create Jenkins CD Job
+
+### 6.1 Setup CD Job (Deploy Image)
+
+1. Jenkins > New Item > Name: `CD-job` > Freestyle project
+2. Build Step > Azure CLI:
+
+   * Credentials: `azure-sp`
+   * Command:
+
+```bash
+az webapp config container set \
+  --name <app-name> \
+  --resource-group <resource-group> \
+  --docker-custom-image-name <acr-name>.azurecr.io/tetris:latest \
+  --docker-registry-server-url https://<acr-name>.azurecr.io
+```
+
+3. Save & Run
+
+---
+
+## 🔁 STEP 7: Automate Pipeline
+
+### 7.1 Set Polling on CI Job
+
+1. `CI-job` > Configure > Build Triggers
+2. Enable Poll SCM
+3. Schedule: `* * * * *` (every minute)
+
+---
+
+### 7.2 Chain CD Job After CI Job
+
+1. `CI-job` > Post-build Actions > Build Other Projects
+2. Add: `CD-job`
+3. Save
+
+---
+
+## 🧪 STEP 8: Test the Pipeline
+
+1. Clone repo locally
+2. Make a change (e.g., change color in HTML file)
+3. Commit and push:
+
+```bash
+git add .
+git commit -m "Test CI/CD"
+git push origin main
+```
+
+4. Jenkins will auto-trigger:
+
+   * CI job (build & push)
+   * CD job (deploy)
+5. Open Web App URL → Change should be live!
+
+---
+
+## 🎉 Done!
+
+You’ve now built a fully automated CI/CD pipeline with Jenkins and Azure.
+
